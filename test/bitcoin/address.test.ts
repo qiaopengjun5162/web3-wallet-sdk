@@ -1,10 +1,8 @@
 // @ts-ignore
-import * as bip39 from '../bip39/bip39';
-import {createAddress, AddressParams} from "@/bitcoin/address";
-// const bip39 = require('../bip39/bip39');
-// const address = require('../src/bitcoin/address');
+import * as bip39 from '@/bip39/bip39';
+import {AddressParams, createAddress} from "@/bitcoin/address";
 import * as assert from 'assert';
-
+import * as bitcoin from 'bitcoinjs-lib'; // 确保导入了bitcoinjs-lib
 
 
 describe("Address test", () => {
@@ -19,14 +17,19 @@ describe("Address test", () => {
             seedHex: seed.toString("hex"),
             receiveOrChange: "0",
             addressIndex: 0,
-            network: "bitcoin",
+            network: bitcoin.networks.bitcoin, // 使用bitcoinjs-lib中的网络对象
             method: "p2pkh"
         }
         const account = createAddress(param)
-        console.log(account.address);
-        assert.strictEqual(account.address, '1H7AcqzvVQunYftUcJMxF9KUrFayEnf83T');
-        // assert.strictEqual(account.privateKey, '60164bec9512d004af7f71e7ed868c8e9ac2cc6234d8b682037ec80547595f2e');
-        // assert.strictEqual(account.publicKey, '030e93482fd0037d589b08c36bb22afc041338ba444f9f9d7ba129348f9be731c1');
+        if ('error' in account) {
+            console.error(account.error);
+            assert.fail('Expected a valid address result, but got an error');
+        } else {
+            console.log(account.address);
+            assert.strictEqual(account.address, '1H7AcqzvVQunYftUcJMxF9KUrFayEnf83T');
+            // assert.strictEqual(account.privateKey, '60164bec9512d004af7f71e7ed868c8e9ac2cc6234d8b682037ec80547595f2e');
+            // assert.strictEqual(account.publicKey, '030e93482fd0037d589b08c36bb22afc041338ba444f9f9d7ba129348f9be731c1');
+        }
     });
 
     test('test create mnemonic', async () => {
