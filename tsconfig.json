@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "esnext",                        // 指定编译后的 JavaScript 版本
+    "module": "esnext",                        // 使用 ES 模块
+    "moduleResolution": "node",                // Node.js 模块解析方式
+    "esModuleInterop": true,                   // 兼容 CommonJS 模块
+    "strict": true,                            // 启用所有严格类型检查选项
+    "forceConsistentCasingInFileNames": true,  // 文件名大小写一致性
+    "skipLibCheck": true,                      // 跳过声明文件检查
+    "outDir": "./dist",                        // 编译输出目录
+    "rootDir": "./src",                        // 源文件根目录
+    "resolveJsonModule": true,                 // 允许导入 JSON 文件
+    "types": ["jest"],                         // 包含 Jest 类型
+    "baseUrl": ".",                            // 基础路径
+    "paths": {                                 // 模块路径别名（如果需要）
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],   // 包含的文件
+  "exclude": ["node_modules", "dist"]          // 排除的文件
+}
