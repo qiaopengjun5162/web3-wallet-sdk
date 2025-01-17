@@ -1,6 +1,9 @@
 import {Interface} from '@ethersproject/abi';
-import {LegacyTransaction, FeeMarketEIP1559Transaction} from '@ethereumjs/tx'
-import {Common} from '@ethereumjs/common'
+import {FeeMarketEIP1559Transaction, LegacyTransaction} from '@ethereumjs/tx'
+import {Chain, Common, CustomChain, Hardfork} from '@ethereumjs/common'
+import {bytesToHex} from '@ethereumjs/util'
+import {PrefixedHexString} from "@ethereumjs/util/src/types";
+import type {ChainConfig} from "@ethereumjs/common/src/types";
 
 
 const ethers = require('ethers');
@@ -21,6 +24,13 @@ export function numberToHex(value: number): string {
     return result.startsWith('-') ? `-0x${result.slice(1)}` : `0x${result}`;
 }
 
+/**
+ * Creates an Ethereum address from a given seed and address index.
+ *
+ * @param seedHex - The seed in hexadecimal format used to derive the master key.
+ * @param addressIndex - The index of the address to derive.
+ * @returns A JSON string containing the derived Ethereum address, public key, and private key.
+ */
 export const createEthAddress = (seedHex: string, addressIndex: string): string => {
     const masterKey = ethers.HDNodeWallet.fromSeed(Buffer.from(seedHex, 'hex')); // 生成 RootKey / MasterKey
 
@@ -39,6 +49,14 @@ export const createEthAddress = (seedHex: string, addressIndex: string): string 
     });
 };
 
+/**
+ * Imports an Ethereum address from a given private key.
+ *
+ * @param privateKey - The private key as a hexadecimal string.
+ * @returns A JSON string containing the derived Ethereum address and private key.
+ *
+ * @throws {Error} If the private key is in an invalid format or length.
+ */
 export function importEthAddress(privateKey: string): string {
     // 移除前缀 "0x"（如果有）
     if (privateKey.startsWith('0x')) {
@@ -71,56 +89,29 @@ export function publicKeyToAddress(publicKey: string): string {
     return ethers.computeAddress(publicKey);
 }
 
-export async function signOpMainnetTransaction(params: any): Promise<string> {
-    const {privateKey, nonce, from, to, gasLimit, gasPrice, amount, data, chainId, decimal, maxFeePerGas,
-        maxPriorityFeePerGas, tokenAddress, tokenId} = params;
-    const wallet = new ethers.Wallet(Buffer.from(privateKey, 'hex'));
-    const txData: any = {
-        nonce: ethers.utils.hexlify(nonce),
-        from,
-        to,
-        gasLimit: ethers.utils.hexlify(gasLimit),
-        value: ethers.utils.hexlify(ethers.utils.parseUnits(amount, decimal)),
-        chainId
-    };
-    if (maxFeePerGas && maxPriorityFeePerGas) {
-        txData.maxFeePerGas = numberToHex(maxFeePerGas);
-        txData.maxPriorityFeePerGas = numberToHex(maxPriorityFeePerGas);
-    } else {
-        txData.gasPrice = ethers.utils.hexlify(gasPrice);
-    }
-    if (tokenAddress && tokenAddress !== '0x00') {
-        let idata: any;
-        if (tokenId == "0x00") {
-            const ABI = [
-                'function transfer(address to, uint amount)'
-            ];
-            const iface = new Interface(ABI);
-            idata = iface.encodeFunctionData('transfer', [to, ethers.utils.hexlify(ethers.utils.parseUnits(amount, decimal))]);
-        } else {
-            const abi = [
-                "function safeTransferFrom(address from, address to, uint256 tokenId)"
-            ];
-            const iface = new ethers.utils.Interface(abi);
-            idata = iface.encodeFunctionData("safeTransferFrom", [wallet.address, to, tokenId]);
-        }
-        txData.data = idata;
-        txData.to = tokenAddress;
-        txData.value = 0;
-    }
-    if (data) {
-        txData.data = data;
-    }
-    return wallet.signTransaction(txData);
+
+export interface EthSignParams {
+    privateKey: string;
+    nonce: number;
+    from: string;
+    to: string;
+    gasPrice?: number;
+    gasLimit: number;
+    amount: string;
+    tokenAddress?: string;
+    decimal?: number;
+    maxPriorityFeePerGas?: number;
+    maxFeePerGas?: number;
+    chainId: Chain  | CustomChain;
+    data?: string;
 }
 
-export function ethSign(params: any) {
+export function ethSign(params: EthSignParams) : PrefixedHexString {
     const {privateKey, nonce, from, to, gasPrice, gasLimit, amount, tokenAddress, decimal, maxPriorityFeePerGas,
         maxFeePerGas, chainId, data} = params;
 
     const transactionNonce = numberToHex(nonce);
     const gasLimits = numberToHex(gasLimit);
-    const chainIdHex = numberToHex(chainId);
     let newAmount = BigNumber(amount).times((BigNumber(10).pow(decimal)));
     const numBalanceHex = numberToHex(newAmount);
 
@@ -129,47 +120,45 @@ export function ethSign(params: any) {
         gasLimit: gasLimits,
         to,
         from,
-        chainId: chainIdHex,
         value: numBalanceHex
     }
-    if (maxFeePerGas && maxPriorityFeePerGas) {
+    if (maxFeePerGas && maxPriorityFeePerGas) { // EIP-1559
         txData.maxFeePerGas = numberToHex(maxFeePerGas);
         txData.maxPriorityFeePerGas = numberToHex(maxPriorityFeePerGas);
     } else {
-        txData.gasPrice = numberToHex(gasPrice);
+        txData.gasPrice = numberToHex(gasPrice!);
     }
-    if (tokenAddress && tokenAddress !== "0x00") {
+    if (tokenAddress && tokenAddress !== "0x00") { // ERC20
         const ABI = ["function transfer(address to, uint amount)"];
-        const iface = new Interface(ABI);
-        txData.data = iface.encodeFunctionData("transfer", [to, numBalanceHex]);
+        const face = new Interface(ABI);
+        txData.data = face.encodeFunctionData("transfer", [to, numBalanceHex]);
         txData.to = tokenAddress;
         txData.value = '0x0';
     }
     if (data) {
         txData.data = data;
     }
-    let common: any, tx: any;
+    let common: Common, tx: any;
     if (txData.maxFeePerGas && txData.maxPriorityFeePerGas) {
-        common = Common.custom({
-            chainId: parseInt(chainId),
-            defaultHardfork: 'london',
-        });
+        if (Object.values(CustomChain).includes(chainId as CustomChain)) {
+            common = Common.custom(chainId as CustomChain, {hardfork: Hardfork.London});
+        } else {
+            common = new Common({ chain: chainId, hardfork: Hardfork.London })
+        }
         tx = FeeMarketEIP1559Transaction.fromTxData(txData, {common});
     } else {
-        common = Common.custom({
-            chainId: parseInt(chainId),
-        });
-        tx = LegacyTransaction.fromTxData(txData, {
-            common
-        });
+        common = new Common({ chain: chainId, hardfork: Hardfork.London })
+
+        tx = LegacyTransaction.fromTxData(txData, {common});
     }
     const privateKeyBuffer = Buffer.from(privateKey, "hex");
-    // const privateKeyBuffer = Buffer.from(privateKey.replace('0x', ''), 'hex');
-
     const signedTx = tx.sign(privateKeyBuffer);
+
     const serializedTx = signedTx.serialize();
     if (!serializedTx) {
         throw new Error("sign is null or undefined");
     }
-    return `0x${serializedTx.toString('hex')}`;
+
+    return bytesToHex(serializedTx)
 }
+
