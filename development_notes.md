@@ -20,6 +20,7 @@
 - https://github.com/cosmos
 - https://github.com/cosmos/cosmjs
 - https://github.com/evmos/evmos
+- https://github.com/cosmos/cosmjs/blob/main/packages/crypto/src/bip39.ts
 
 
 ## 实操

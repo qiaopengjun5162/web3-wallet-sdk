@@ -2,6 +2,9 @@ import BIP32Factory from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 // import Buffer = util.Buffer;
 import {Buffer} from 'buffer';
+import  {isValidAddress, verifyChecksum} from "@/cosmos/validator";
+import {createSendMessage, createTxBody, createTxRawBytes}  from "@/cosmos/proto-tx-service";
+import {getSignDoc, getAuthInfo, getDirectSignature} from "@/cosmos/post-ibc-signer";
 
 const bip32 = BIP32Factory(ecc);
 const {fromHex, toBase64} = require('@cosmjs/encoding');
@@ -10,9 +13,8 @@ const {
     pubkeyToAddress: atomPubkeyToAddress
 } = require('@cosmjs/amino');
 const BigNumber = require('bignumber.js');
-const {createSendMessage, createTxBody, createTxRawBytes} = require("./proto-tx-service")
-const {getSignDoc, getAuthInfo, getDirectSignature} = require("./post-ibc-signer");
-const {isValidAddress, verifyChecksum} = require("./validator");
+
+
 
 
 /**
@@ -25,19 +27,16 @@ const {isValidAddress, verifyChecksum} = require("./validator");
 // 将公钥-->base64 编码--> 根据编码判断是 secp256k1 还是 ed25519 的公钥---> sha256---->ripemd160---> bech32 编码
 export async function createAtomAddress(seedHex: string, addressIndex: string, _network: string) {
     try {
-        // 输入验证
-        if (!isValidSeedHex(seedHex) || !isValidAddressIndex(addressIndex)) {
-            throw new Error('Invalid input parameters');
-        }
-
         const node = bip32.fromSeed(Buffer.from(seedHex, 'hex'));
         const child = node.derivePath(`m/44'/118'/0'/0/${addressIndex}`);
         const publicKey = child.publicKey;
         const prefix = 'cosmos';
+        const publicKeyHex = Buffer.from(publicKey).toString('hex');
         const pubkey = {
             type: 'tendermint/PubKeySecp256k1',
-            value: toBase64(fromHex(publicKey.toString('hex')))
+            value: toBase64(fromHex(publicKeyHex))
         };
+
         const address = atomPubkeyToAddress(pubkey, prefix);
 
         return {
@@ -49,16 +48,6 @@ export async function createAtomAddress(seedHex: string, addressIndex: string, _
         console.error('Error creating Atom address:', error);
         throw error; // 或者根据需求进行更细致的错误处理
     }
-}
-
-function isValidSeedHex(seedHex: string): boolean {
-    // 实现种子验证逻辑
-    return /^[0-9a-fA-F]{64}$/.test(seedHex); // 示例：验证是否为64位十六进制字符串
-}
-
-function isValidAddressIndex(addressIndex: string): boolean {
-    // 实现地址索引验证逻辑
-    return /^\d+$/.test(addressIndex); // 示例：验证是否为非负整数
 }
 
 
@@ -159,9 +148,9 @@ export async function SignV2Transaction(params: any): Promise<string> {
     if (feeAmount.toString().indexOf(".") !== -1) {
         throw new Error('input amount value invalid.');
     }
-    if (!verifyAddress({address: from}) || !verifyAddress({address: to})) {
-        throw new Error('input address value invalid.');
-    }
+    // if (!verifyAddress({address: from}) || !verifyAddress({address: to})) {
+    //     throw new Error('input address value invalid.');
+    // }
     const sendMessage = createSendMessage(
         from,
         to,
