@@ -3,7 +3,8 @@
 const { Keypair, NONCE_ACCOUNT_LENGTH, SystemProgram, Transaction, PublicKey, SPLToken } = require("@solana/web3.js");
 
 
-const { derivePath, getPublicKey } = require('ed25519-hd-key');
+import { derivePath, getPublicKey } from 'ed25519-hd-key';
+// const { derivePath, getPublicKey } = require('ed25519-hd-key');
 const bs58 = require('bs58');
 const BigNumber = require('bignumber.js');
 
@@ -12,11 +13,12 @@ const createStakeDelegate = "CREATE_STAKE_DELEGATE";
 const unstakeAll = "UNSTAKE_ALL";
 const withdrawAll = "WITHDRAW_ALL";
 
+
 export function createSolHdAddress(seedHex: string, addressIndex: string): string {
     const path = "m/44'/501'/0'/" + addressIndex + "'";
     const { key } = derivePath(path, seedHex);
-    const publicKey = getPublicKey(new Uint8Array(key), false).toString('hex');
-    const buffer = Buffer.from(getPublicKey(new Uint8Array(key), false).toString('hex'), 'hex');
+    const publicKey = getPublicKey(key, false).toString('hex');
+    const buffer = Buffer.from(getPublicKey(key, false).toString('hex'), 'hex');
     const address = bs58.encode(buffer);
     const account = {
         address,
