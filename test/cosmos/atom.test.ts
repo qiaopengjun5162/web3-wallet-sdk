@@ -64,7 +64,7 @@ describe('atom unit test case', () => {
             amount: 0.1,
             fee: 1,
             accountNumber: 2782398,
-            sequence: 23,
+            sequence: 20,
             decimal: 6
         }
         let signTx = await signAtomTransaction(params)

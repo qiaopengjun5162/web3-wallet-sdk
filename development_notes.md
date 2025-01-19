@@ -22,6 +22,13 @@
 - https://github.com/evmos/evmos
 - https://github.com/cosmos/cosmjs/blob/main/packages/crypto/src/bip39.ts
 
+### 4. solana
+- https://solscan.io/
+- https://github.com/solana-labs
+- https://solana.com/docs/clients/javascript
+- https://solana.com/developers/cookbook/wallets/generate-mnemonic
+- https://solana.com/developers/cookbook/wallets/restore-from-mnemonic
+- https://www.npmjs.com/package/bs58
 
 ## 实操
 
