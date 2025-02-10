@@ -4,8 +4,8 @@ import { bytesToHex } from "@ethereumjs/util";
 import { PrefixedHexString } from "@ethereumjs/util/src/types";
 import { Interface } from "@ethersproject/abi";
 
-import * as ethers from "ethers";
 import BigNumber from "bignumber.js";
+import * as ethers from "ethers";
 
 export function numberToHex(value: number | BigNumber): string {
     const bigNumber = new BigNumber(value);
@@ -75,6 +75,28 @@ export function importEthAddress(privateKey: string): string {
         privateKey,
         address: wallet.address,
     });
+}
+
+/**
+ * Verifies if a given string is a valid Ethereum address.
+ *
+ * @param address - The Ethereum address to verify.
+ * @returns `true` if the address is valid, `false` otherwise.
+ *
+ * @remarks
+ * This function uses the `ethers.isAddress` function to check if the provided string is a valid Ethereum address.
+ *
+ * @example
+ * ```typescript
+ * const isValidAddress = verifyETHAddress("0x1234567890abcdef1234567890abcdef12345678");
+ * console.log(isValidAddress); // Output: true
+ *
+ * const invalidAddress = verifyETHAddress("0x1234567890abcdef1234567890abcdef1234567");
+ * console.log(invalidAddress); // Output: false
+ * ```
+ */
+export function verifyETHAddress(address: string): boolean {
+    return ethers.isAddress(address);
 }
 
 export function publicKeyToAddress(publicKey: string): string {

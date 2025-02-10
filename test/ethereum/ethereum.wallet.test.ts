@@ -2,6 +2,7 @@ import {
     createEthAddress,
     ethSign,
     importEthAddress,
+    verifyETHAddress,
     publicKeyToAddress,
 } from "@/ethereum";
 import { Chain, CustomChain } from "@ethereumjs/common";
@@ -42,6 +43,12 @@ describe("ethereum wallet test", () => {
         const address = importEthAddress(privateKey);
         // {"privateKey":"dc2d6117326e9953bc997045df045ea87ebb1c974b49580fafa92fe9a7336ef9","address":"0x6Fe908602d5606D6a83257D3e054688c24E39072"}
         console.log(address);
+    });
+
+    test("verifyETHAddress", () => {
+        const address = "0x6Fe908602d5606D6a83257D3e054688c24E39072";
+        const isOk = verifyETHAddress(address);
+        console.log(isOk);
     });
 
     test("publicKeyToAddress", () => {
